@@ -1,0 +1,25 @@
+---
+- name: Provision Enterprise Automation Controller Layer
+  hosts: brain
+  become: yes
+  tasks:
+    - name: Fetch Official Jenkins System Software Repository
+      get_url:
+        url: "https://jenkins.io"
+        dest: /etc/yum.repos.d/jenkins.repo
+        mode: '0644'
+
+    - name: Import Jenkins Repository Trusted Cryptographic Signature Key
+      command: rpm --import https://jenkins.io
+      changed_when: true
+
+    - name: Provision Modern Runtime Dependencies and Jenkins Engine
+      dnf:
+        name: [ 'java-17-openjdk', 'jenkins' ]
+        state: present
+
+    - name: Launch Jenkins Automation Daemon and lock to System Startup
+      systemd:
+        name: jenkins
+        state: started
+        enabled: yes

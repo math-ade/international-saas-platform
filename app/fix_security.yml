@@ -1,0 +1,21 @@
+---
+- name: Unblock Security Policies on Load Balancer
+  hosts: alb
+  become: yes
+  tasks:
+    - name: Enable public HTTP traffic port 80 via raw firewall command
+      command: firewall-cmd --permanent --add-service=http
+      changed_when: true
+
+    - name: Reload firewall configuration instantly
+      command: firewall-cmd --reload
+      changed_when: true
+
+    - name: Adjust SELinux policy to permit HAProxy outbound proxy routing
+      command: setsebool -P haproxy_connect_any 1
+      changed_when: true
+
+    - name: Restart HAProxy engine to establish active listening loops
+      systemd:
+        name: haproxy
+        state: restarted

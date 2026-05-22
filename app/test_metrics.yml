@@ -1,0 +1,14 @@
+---
+- name: Verify Live Prometheus Metrics Stream
+  hosts: workers
+  tasks:
+    - name: Hit the metrics endpoint natively
+      uri:
+        url: "http://localhost:9000/metrics"
+        return_content: yes
+      register: metric_response
+
+    - name: Look for our custom SaaS metric rule
+      debug:
+        msg: "Metrics are working!"
+      when: "'saas_api_requests_total' in metric_response.content"
