@@ -1,0 +1,28 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: python-saas-api-pod
+  labels:
+    app: saas-backend
+spec:
+  containers:
+  - name: python-api
+    image: localhost/global-python-api:latest
+    ports:
+    - containerPort: 8000
+      hostPort: 9000
+    env:
+    - name: DATABASE_URL
+      value: "postgresql://saas_user:saas_secure_pass@127.0.0.1:5432/saas_production"
+
+  - name: postgres-db
+    image: docker.io/library/postgres:15-alpine
+    ports:
+    - containerPort: 5432
+    env:
+    - name: POSTGRES_USER
+      value: "saas_user"
+    - name: POSTGRES_PASSWORD
+      value: "saas_secure_pass"
+    - name: POSTGRES_DB
+      value: "saas_production"
