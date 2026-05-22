@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: python-saas-api-pod
+  labels:
+    app: saas-backend
+spec:
+  containers:
+  - name: python-api
+    image: localhost/global-python-api:latest
+    ports:
+    - containerPort: 8000
+      hostPort: 9000

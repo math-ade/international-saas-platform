@@ -1,0 +1,20 @@
+---
+- name: Launch Metrics Enabled SaaS API Tiers
+  hosts: workers
+  become: yes
+  tasks:
+    - name: Dismantle legacy application container footprints
+      shell: podman stop python-api saas-pod && podman rm python-api saas-pod
+      ignore_errors: yes
+
+    - name: Clear conflicting native Kubernetes pod state names
+      shell: podman pod stop python-saas-api-pod && podman pod rm python-saas-api-pod
+      ignore_errors: yes
+
+    - name: Provision an enterprise infrastructure Pod structure on safe port 9000
+      command: podman pod create --name saas-pod -p 0.0.0.0:9000:8000
+      changed_when: true
+
+    - name: Launch your multi-stage metrics enabled Python microservice
+      command: podman run -d --pod saas-pod --name python-api localhost/global-python-api:latest
+      changed_when: true

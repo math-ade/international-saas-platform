@@ -1,0 +1,13 @@
+---
+- name: Verify Isolated Python API
+  hosts: workers
+  tasks:
+    - name: Trigger connection check using active cluster host mapping variables
+      uri:
+        url: "http://{{ ansible_host }}:9000/api/v1/data"
+        return_content: yes
+      register: api_response
+
+    - name: Print live verification output payload
+      debug:
+        msg: "{{ api_response.content }}"

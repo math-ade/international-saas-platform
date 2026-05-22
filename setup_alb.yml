@@ -1,0 +1,45 @@
+---
+- name: Bring Application Load Balancer Online
+  hosts: alb
+  become: yes
+  tasks:
+    - name: Install HAProxy reverse proxy engine
+      dnf:
+        name: haproxy
+        state: present
+
+    - name: Inject Production Load Balancing Rules
+      copy:
+        dest: /etc/haproxy/haproxy.cfg
+        content: |
+          global
+              log         127.0.0.1 local2
+              chroot      /var/lib/haproxy
+              pidfile     /var/run/haproxy.pid
+              maxconn     4000
+              user        haproxy
+              group       haproxy
+              daemon
+
+          defaults
+              mode                    http
+              log                     global
+              option                  httplog
+              timeout connect         10s
+              timeout client          1m
+              timeout server          1m
+
+          frontend public_saas_ingress
+              bind 192.168.56.51:80
+              default_backend python_api_pool
+
+          backend python_api_pool
+              balance roundrobin
+              server worker1 192.168.56.52:9000 check
+              server worker2 192.168.56.103:9000 check
+
+    - name: Start HAProxy and ensure it stays active on boot
+      systemd:
+        name: haproxy
+        state: restarted
+        enabled: yes

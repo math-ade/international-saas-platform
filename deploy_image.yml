@@ -1,0 +1,40 @@
+---
+- name: Package Application Layers on Brain Node
+  hosts: brain
+  tasks:
+    - name: Clear local legacy archive footprints
+      file:
+        path: /tmp/global-python-api.tar
+        state: absent
+
+    - name: Export fresh local image package layer
+      command: podman save -o /tmp/global-python-api.tar localhost/global-python-api:latest
+      changed_when: true
+
+- name: Sync and Roll Out Infrastructure to Workers
+  hosts: workers
+  become: yes
+  tasks:
+    - name: Drop active legacy Kubernetes pod runtimes to prevent interface locks
+      command: podman pod rm -f python-saas-api-pod
+      ignore_errors: yes
+
+    - name: Push fresh image archive bundle down to node disks
+      copy:
+        src: /tmp/global-python-api.tar
+        dest: /tmp/global-python-api.tar
+        mode: '0644'
+
+    - name: Import image layers directly into runtime engines
+      command: podman load -i /tmp/global-python-api.tar
+      changed_when: true
+
+    - name: Sync master Kubernetes architectural manifest file
+      copy:
+        src: ~/k8s/saas_deployment.yaml
+        dest: /tmp/saas_deployment.yaml
+        mode: '0644'
+
+    - name: Execute clean native Kubernetes deployment rollout
+      command: podman kube play /tmp/saas_deployment.yaml
+      changed_when: true
