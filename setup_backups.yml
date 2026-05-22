@@ -1,0 +1,37 @@
+---
+- name: Configure Automated Nightly Database Backup Cron Tasks
+  hosts: workers
+  become: yes
+  tasks:
+    - name: Establish secure storage directory footprint for database snapshots
+      file:
+        path: /opt/saas/backups
+        state: directory
+        owner: maths
+        group: maths
+        mode: '0750'
+
+    - name: Provision the shell backup execution script to disk
+      copy:
+        dest: /opt/saas/backups/db_backup.sh
+        mode: '0750'
+        owner: maths
+        content: |
+          #!/bin/bash
+          BACKUP_DIR="/opt/saas/backups"
+          DATE_STAMP=$(date +%Y%m%d_%H%M%S)
+          FILE_NAME="${BACKUP_DIR}/saas_backup_${DATE_STAMP}.sql.gz"
+          
+          # Target the native postgres container inside the active pod framework to stream a snapshot
+          podman exec -t python-saas-api-pod-postgres-db pg_dump -U saas_user saas_production | gzip > "${FILE_NAME}"
+          
+          # Retention management policy: Prune backup assets older than 14 days to preserve disk space
+          find "${BACKUP_DIR}" -name "saas_backup_*.sql.gz" -mtime +14 -delete
+
+    - name: Establish a cron schedule execution rule to fire nightly at midnight
+      cron:
+        name: "Nightly SaaS Database Engine Snapshot Backup"
+        minute: "0"
+        hour: "0"
+        job: "/opt/saas/backups/db_backup.sh >/dev/null 2>&1"
+        state: present
